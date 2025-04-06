@@ -4,6 +4,8 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit_ibm_runtime import EstimatorV2 as Estimator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+import matplotlib.pyplot as plt
+import matplotlib.ticker as tck
 import numpy as np
 
 
@@ -12,7 +14,7 @@ import numpy as np
 #############################
 
 # Setting up the service to connect to IBM Quantum to submit the job to the queue
-token = 'INSERT_YOUR_TOKEN_HERE'
+token = 'YOUR_TOKEN_HERE'
 
 # Save credentials to disk for future sessions
 # Note: overwrite=True ensures previous credentials are replaced
@@ -56,7 +58,7 @@ qc.ry(theta, 0)
 
 
 # Spaces out 40 different values between 0 and 2pi (full rotation)
-number_of_phases = 40 # Consider this to be the "resolution" of the parameterization
+number_of_phases = 20 # Consider this to be the "resolution" of the parameterization
 phases = np.linspace(0, 2 * np.pi, number_of_phases)
 
 
@@ -110,12 +112,16 @@ pub = (
 )
 
 # Submit job to IBM Quantum system
-job = estimator.run(pubs=[pub]).result()
+job = estimator.run(pubs=[pub])
+result = job.result()
 
 # This is our CHSH value, if it is greater than 2, then the CHSH inequality has been violated
-S_values = job[0].data.evs[0] # Expectation values for the observable
+S_values = result[0].data.evs[0] # Expectation values for the observable
+
+print(S_values)
+
 violation = np.any(np.abs(S_values) > 2)
 print(f"CHSH violation detected: {violation}")
 
-print(f"Job ID: {job.job_id}") # Unique identifier for job
+print(f"Job ID: {job.job_id()}") # Unique identifier for job
 print(f"Job status: {job.status()}") # Should be 'DONE' if successful
