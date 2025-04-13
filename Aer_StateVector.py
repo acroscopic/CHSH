@@ -63,10 +63,10 @@ def CHSH():
         else:
             S += E
         
-        print(f"E({alice}{bob}) = {E:.4f}")
+        print(f"E({alice}{bob}) = {E:.8f}")
 
     return S
 
 # Run the statevector simulation
 S_exact = CHSH()
-print(f"\nExact CHSH value S = {S_exact:.4f} ≈ 2√2 ({2*np.sqrt(2):.4f})")
+print(f"\nCHSH value S = {S_exact:.8f}... = 2√2 ({2*np.sqrt(2):.8f}...)")
