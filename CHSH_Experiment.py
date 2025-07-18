@@ -4,8 +4,6 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit_ibm_runtime import EstimatorV2 as Estimator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-import matplotlib.pyplot as plt
-import matplotlib.ticker as tck
 import numpy as np
 
 
