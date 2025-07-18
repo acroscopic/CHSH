@@ -18,7 +18,8 @@ token = 'YOUR_TOKEN_HERE'
 # Note: overwrite=True ensures previous credentials are replaced
 QiskitRuntimeService.save_account(
    token=token,
-   channel="ibm_quantum", # Specifies the IBM Quantum channel instead of using IBM Cloud
+   # Specifies the IBM Quantum channel instead of using IBM Cloud
+   channel="ibm_quantum", 
    overwrite=True  
 )
 
@@ -30,7 +31,9 @@ service = QiskitRuntimeService(channel="ibm_quantum")
 # operational=True: Only considers online systems
 # min_num_qubits=127: Filters for modern "Eagle" processor-based systems
 try:
-   backend = service.least_busy(simulator=False, operational=True, min_num_qubits=127)
+   backend = service.least_busy(simulator=False,
+                                operational=True,
+                                min_num_qubits=127)
 except:
    print("No backend available. Using simulator instead.")
    backend = service.get_backend("ibmq_qasm_simulator")
@@ -38,7 +41,8 @@ except:
 print(f"Using backend: {backend.name}")
 
 
-# Create a parameterized rotation angle (LaTeX formatted s.t. it appears as θ in circuit diagrams)
+# Create a parameterized rotation angle 
+# (LaTeX formatted s.t. it appears as θ in circuit diagrams)
 theta = Parameter("$\\theta$")
 
 # creates a quantum circuit with 2 qubits
@@ -60,10 +64,9 @@ number_of_phases = 20 # Consider this to be the "resolution" of the parameteriza
 phases = np.linspace(0, 2 * np.pi, number_of_phases)
 
 
-# Phases need to be expressed as list of lists in order to work (Note: A list of lists is a Pythonic way to express a matrix)
-# converts []
+# Phases need to be expressed as list of lists in order to work 
+# (Note: A list of lists is a Pythonic way to express a matrix)
 individual_phases = [[angle] for angle in phases]
-
 
 # S = <ZZ> - <ZX> + <XZ> + <XX>
 # These are the Pauli X and Z gates tensored together
@@ -75,7 +78,8 @@ observable = SparsePauliOp.from_list([
 ])
 
 
-# This is a critical step and is needed to collect the properties of the specific backend
+# This is a critical step and is needed to collect the 
+#     properties of the specific backend
 target = backend.target
 
 # Create transpilation pass manager with:
@@ -97,9 +101,11 @@ qc_isa = pm.run(qc) # Creates a hardware-compatable quantum circuit
 # Adjust observables to match transpiled circuit's qubit mapping:
 # layout contains virtual→physical qubit mapping information
 # Required because transpilation may reorder qubits
-isa_observable = observable.apply_layout(layout=qc_isa.layout) # Creates a hardware-compatable observable
+# Creates a hardware-compatable observable
+isa_observable = observable.apply_layout(layout=qc_isa.layout) 
 
-# Initialize Estimator configured for selected backend to handle job queuing and execution
+# Initialize Estimator configured for selected backend 
+#  to handle job queuing and execution
 estimator = Estimator(mode=backend)
 
 # Create "publisher" (pub) object
@@ -113,7 +119,8 @@ pub = (
 job = estimator.run(pubs=[pub])
 result = job.result()
 
-# This is our CHSH value, if it is greater than 2, then the CHSH inequality has been violated
+# This is our CHSH value, 
+#  if it is greater than 2, then the CHSH inequality has been violated
 S_values = result[0].data.evs[0] # Expectation values for the observable
 
 print(S_values)

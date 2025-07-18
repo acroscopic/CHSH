@@ -1,4 +1,7 @@
-from qiskit import QuantumCircuit, transpile, QuantumRegister, ClassicalRegister
+from qiskit import ClassicalRegister
+from qiskit import QuantumRegister
+from qiskit import QuantumCircuit 
+from qiskit import transpile
 from qiskit_aer import Aer
 import numpy as np
 import argparse
@@ -225,7 +228,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "--shots", "-s",
     type=int,
-    default=1024,
+    default=1048576, #2^20
     help="Number of measurement shots to run (default: 1024)"
 )
 args = parser.parse_args()
