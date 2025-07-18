@@ -1,7 +1,7 @@
 from qiskit import QuantumCircuit, transpile, QuantumRegister, ClassicalRegister
 from qiskit_aer import Aer
 import numpy as np
-
+import argparse
 
 ########################################
 #   Violation of the CHSH inequality   #
@@ -150,7 +150,7 @@ def expectation(counts):
 # Note that due to the absolute value, the bound −2 ≤ S is also valid, but S ≥ 2 is more commonly used
 
 
-def CHSH():
+def CHSH(shots):
 	backend = Aer.get_backend('qasm_simulator')  # Use the Aer simulator instead of queueing to IBM
 
 	# Initialize the CHSH value, S
@@ -190,7 +190,7 @@ def CHSH():
 
 		# Transpile and run the circuit through qiskit and the Aer simulator backend
 		transpiled_qc = transpile(qc, backend)
-		job = backend.run(transpiled_qc, shots=10000000) 
+		job = backend.run(transpiled_qc, shots=shots) 
 		# shots=1000000 is for the iterations for the expectation values, higher shots improve statistical significance
 		result = job.result()
 		counts = result.get_counts()
@@ -217,11 +217,24 @@ def CHSH():
 	# The theorhetical maximum violation that can be obtained is S = 2√2 (Tsirelson's bound)
 	# When using the Aer simulator on lower shot counts, it will occasionally be slightly over this bound.
 	
-
+# This big code block just lets me pass shots through the command line
+# i.e. python Aer_Qasm.py --shots 100000
+parser = argparse.ArgumentParser(
+    description="Compute the CHSH value with a user-specified number of shots"
+)
+parser.add_argument(
+    "--shots", "-s",
+    type=int,
+    default=1024,
+    help="Number of measurement shots to run (default: 1024)"
+)
+args = parser.parse_args()
 
 # Run the experiment
-S = CHSH()
-print(f"CHSH value S = {S:.4f}")
+S = CHSH(args.shots)
+print(f"CHSH value:")
+print(f"S = {S:.4f}")
+print(f"2√2 = {2*np.sqrt(2):.8f}...")
 
 
 ##################
