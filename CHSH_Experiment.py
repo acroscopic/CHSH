@@ -8,7 +8,7 @@ import numpy as np
 
 
 #############################
-# IBM Quantum Account Setup #
+#     IBM Quantum Setup     #
 #############################
 
 # Setting up the service to connect to IBM Quantum to submit the job to the queue
@@ -27,7 +27,7 @@ QiskitRuntimeService.save_account(
 service = QiskitRuntimeService(channel="ibm_quantum")
 
 # Select backend with these properties:
-# simulator=True: Ensures real hardware is used
+# simulator=False: Ensures real hardware is used
 # operational=True: Only considers online systems
 # min_num_qubits=127: Filters for modern "Eagle" processor-based systems
 try:
@@ -39,6 +39,10 @@ except:
    backend = service.get_backend("ibmq_qasm_simulator")
 
 print(f"Using backend: {backend.name}")
+
+#############################
+#        CHSH  Setup        #
+#############################
 
 
 # Create a parameterized rotation angle 
@@ -77,6 +81,10 @@ observable = SparsePauliOp.from_list([
    ("XX", 1)   # E(A_1 B_1)
 ])
 
+
+#############################
+#       Backend Setup       #
+#############################
 
 # This is a critical step and is needed to collect the 
 #     properties of the specific backend
