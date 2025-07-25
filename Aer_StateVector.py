@@ -96,5 +96,5 @@ print("Calculating individual expectation values:")
 S_exact = CHSH()
 
 print(f"\nCalculating CHSH Value:")
-print(f"S = {S_exact:.8f}...")
-print(f"2√2 = {2*np.sqrt(2):.8f}...")
+print(f"S   = {S_exact:.10f}...")
+print(f"2√2 = {2*np.sqrt(2):.10f}...")
