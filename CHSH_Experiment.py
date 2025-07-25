@@ -27,7 +27,7 @@ QiskitRuntimeService.save_account(
 service = QiskitRuntimeService(channel="ibm_quantum")
 
 # Select backend with these properties:
-# simulator=True: Ensures real hardware is used
+# simulator=False: Ensures real hardware is used
 # operational=True: Only considers online systems
 # min_num_qubits=127: Filters for modern "Eagle" processor-based systems
 try:
