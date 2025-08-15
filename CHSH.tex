@@ -1,14 +1,16 @@
 \documentclass[12pt]{article}
-\usepackage[letter, margin=1in]{geometry} % Visualize margins
-\usepackage{amsmath, mathrsfs, amssymb, physics} % symbols
-\usepackage{graphicx, titlesec}
-\usepackage{titling} % title hooks
-\usepackage{xcolor, listings} % Python syntax highlighting
+\usepackage[letter, margin=1in]{geometry}        % Changing the margins
+\usepackage{amsmath, mathrsfs, amssymb, physics} % Multiple packages, all new symbols
+\usepackage{graphicx}                            % For inserting pictures
+\usepackage{titlesec}                            % Better titles
+\usepackage{titling}                             % Makes my title look a little better
+\usepackage{xcolor, listings}                    % Python/Programming Syntax Highlighting
+\usepackage{parskip}                             % Better paragraph formatting
+\usepackage{multirow}                            % New way to format tables
+\usepackage{array}                               % More ways to format tables
+\usepackage[braket, qm]{qcircuit}                % For making quantum circuit diagrams
+% Hyperref is for changing how links appear in text
 \usepackage[colorlinks=true, urlcolor=blue, linkcolor=blue, citecolor=blue]{hyperref}
-\usepackage{parskip} % better paragraph formatting
-\usepackage{multirow}
-\usepackage{array}
-\usepackage[braket, qm]{qcircuit} % for quantum circuits
 
 \setcounter{secnumdepth}{0} % Removes section numbering
 
@@ -24,7 +26,6 @@
 \preauthor{\large}
 \postauthor{\par\vspace{1em}}
 \predate{\large}
-\postdate{\par\vspace{3em}}
 \postdate{\par\vspace{3em}}
 
 \graphicspath{{./images/}}
@@ -57,12 +58,20 @@ April 2025} % Add small vertical space after name
 }
 \makeatother
 
+% Allows for comments by the author, delete before publishing
+% Example Usage:
+% \com{DK}{This is a comment!}
+% \bcom{DK}{This is a bolded comment!}
+\newcommand{\com}[2]{\textcolor{#1}{[#1: #2]}}
+\newcommand{\bcom}[2]{\textcolor{#1}{\textbf{[#1: #2]}}}
+\definecolor{DK}{rgb}{0,1,0} % Set the color of your comment based on author initials
+
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-The Clauser–Horne–Shimony–Holt (CHSH) inequality provides an experimentally testable framework for Bell's theorem, and led to John Clauser being awarded the 2022 Nobel Prize in Physics for his work in quantum information. This work replicates and extends these pivotal experiments to explore quantum nonlocality in diverse computational environments. This paper implements three CHSH experiments: a noiseless simulation using Qiskit's StateVector simulator, a noisy simulation to emulate decoherence effects inherent in quantum computing, and execution on IBM quantum hardware. In each case, entangled Bell states are prepared and measured with optimized settings, leading to the demonstration of violations of the classical bound, $|S| \leq 2$. Our results empirically validate Bell's theorem, and additionally highlight the resilience of quantum correlations under noise. The paper adopts a pedagogical framework while replicating the CHSH experiment to serve as a practical guide for educators and researchers seeking to reproduce this foundational quantum experiment.
+The Clauser–Horne–Shimony–Holt (CHSH) inequality provides an experimentally testable framework for Bell’s theorem, leading to John Clauser’s pioneering Bell tests which were recognized by the 2022 Nobel Prize in Physics. This paper acts as a pedagogical exposition aimed at undergraduate students and simultaneously replicates and extends CHSH experiments to explore quantum nonlocality across three computational settings: (1) an ideal (noiseless) simulation, (2) a noisy simulation (to emulate decoherence), and (3) execution on IBM quantum hardware. In each case, entangled Bell states are prepared and measured with optimized settings, leading to the demonstration of violations of the classical bound, $|S| \leq 2$. Our results empirically validate Bell’s theorem and demonstrate that quantum correlations remain robust even under realistic noise. This work serves as a practical guide for educators, students, and researchers who wish to reproduce this foundational experiment in quantum information in their own environments.
 \end{abstract}
 
 \newpage
@@ -70,34 +79,36 @@ The Clauser–Horne–Shimony–Holt (CHSH) inequality provides an experimentall
 \newpage
 \section{Introduction}
 
-Proving Bell's theorem with the CHSH experiment is a foundational result in Quantum Information theory. To begin, this paper will first begin by introducing the required background knowledge adopted from the  formalism of quantum information as described by Neilsen and Chuang \cite{Quantum_Information}, then it will explain and derive the CHSH inequality, including Tsirelson's bound, and then it will go through the quantum code to experimentally reproduce the results of the CHSH experiment on IBM hardware\cite{ibm_quantum}. 
+We begin by introducing the required background knowledge adopted from the  formalism of quantum information as described by Nielsen and Chuang \cite{Quantum_Information}. We then explain and derive the CHSH inequality, including Tsirelson's bound. Finally, we will then go through the code to experimentally reproduce the results of the CHSH experiment on IBM quantum hardware\cite{ibm_quantum}. By experimentally violating the CHSH inequality and thereby proving Bell’s theorem, the CHSH experiment delivers unambiguous evidence of nonlocal quantum entanglement, laying foundational groundwork for quantum information theory.
 
-\subsection{Qubits}
+\section{Qubits}
 
-Qubits, or "quantum bits," are quantum representations of information. Physically, a qubit can be made from any quantum particle that has two distinct states. For example a photon of light being polarized either horizontally or vertically or an electron being spin up or spin down. Physically, qubits are usually either spin up/spin down instead of being in a "zero/one" state.
+Quantum bits, or "qubits," are quantum representations of information. Physically, a qubit can be made from any quantum system with two distinct states. For example a photon of light being polarized either horizontally or vertically or an electron being spin up or spin down. Physically, qubits are either spin up or spin down with respect to an external magnetic field instead of being in a "zero" or "one" state. 
 
 $$
 \ket{0} = \ket{\uparrow} \hspace{2cm} \ket{1} = \ket{\downarrow}
 $$
 
 
-A singular qubit can be either zero or one (or both!), and represented mathematically by
+A singular qubit can be either zero or one (or both!) and they are represented mathematically by
 $$
 \ket{\psi} = \ket{0} = \begin{pmatrix} 1 \\ 0 \end{pmatrix} \hspace{2cm} \ket{\psi} = \ket{1} = \begin{pmatrix} 0 \\ 1 \end{pmatrix}
 $$
 
-Similarly to classical bits, qubits can be either 0 or 1, however, they can also leverage superposition and be in both states simultaneously
+Similarly to classical bits, qubits can be either 0 or 1, however, they can also leverage superposition and be in both states simultaneously.
 $$
-\ket{\psi} = \frac{1}{\sqrt{2}} (\ket{0} + \ket{1})
-$$
-
-Where the square of $\frac{1}{\sqrt{2}}$ is the probability of each state, so it's 50\% $\ket{0}$ and 50\% $\ket{1}$ The qubit will stay in this superposition until interaction with the environment or measurement, then it will collapse into either $\ket{\psi} = \ket{0}$ or $\ket{\psi} =\ket{1}$
-
-$$
-P(\ket{0}) = (\frac{1}{\sqrt{2}})^2 = 0.5 \hspace{2cm} P(\ket{1}) = (\frac{1}{\sqrt{2}})^2 = 0.5 
+\ket{\psi} = \frac{1}{\sqrt{2}} (\ket{0} + \ket{1}) = \frac{1}{\sqrt{2}} \ket{0} + \frac{1}{\sqrt{2}}\ket{1}
 $$
 
-A more general way to represent qubits is like this, where $|\alpha|^2$ and $|\beta|^2$ are the probabilities of being in the respective states.
+In this case, $\frac{1}{\sqrt{2}}$ is the "probability amplitude" of each state. To find the individual probability, we square the modulus of the values, $|\frac{1}{\sqrt{2}}|^2 = 0.5$. \footnote{The modulus might seem superfluous in this case, but is standard practice when working with complex numbers, which we will see later.} Therefore, the qubit is 50\% in the $\ket{0}$ state and 50\% in the $\ket{1}$ state. We can write the probability of measuring these states as follows
+
+$$
+P(\ket{0}) = |\frac{1}{\sqrt{2}}|^2 = 0.5 \hspace{2cm} P(\ket{1}) = |\frac{1}{\sqrt{2}}|^2 = 0.5 
+$$
+
+The qubit will stay in this superposition until it interacts with the environment or is measured, then it will collapse into one of the states, depending on the probability. Either $\ket{\psi} = \ket{0}$ or $\ket{\psi} =\ket{1}$ could be observed. 
+
+A more general way to represent qubits is as follows, where $|\alpha|^2$ and $|\beta|^2$ are the probabilities of being in the $\ket{0}$ and $\ket{1}$ states, respectively.
 
 $$
 \ket{\psi} = 
@@ -110,65 +121,87 @@ $$
 \alpha\ket{0} + \beta\ket{1}
 $$
 
-So this is how a single qubit can be represented, but how do we consider a multi-qubit system? To add new qubits to a system, they need to be tensored together.
+If this is how a single qubit can be represented, how do we represent a multi-qubit system? 
 
-A 5-qubit system can be represented inside of a ket read right to left. Thus, the first qubit in this system is 1.
-$$
-\ket{\psi} = \ket{01011}
-$$
-
-This 5-qubit system is quite messy to represent with matrices and can be done with the tensor product.
+For now, let's continue using the same matrix notation, but with a 2-qubit system. We previously represented $\ket{0}$ and $\ket{1}$ by
 
 $$
-\ket{01011} = \ket{0} \otimes \ket{1} \otimes \ket{0} \otimes \ket{1} \otimes \ket{1}
+\ket{0} = \begin{pmatrix} 1 \\ 0 \end{pmatrix}
+\hspace{2cm}
+\ket{1} = \begin{pmatrix} 0 \\ 1 \end{pmatrix}
 $$
 
-The tensor product takes the possible states and expands it to show every possible permutation of the states, for example the two qubits tensored together
+We will now represent a 2-qubit system by
+
+$$
+\ket{00} = \begin{pmatrix} 1 \\ 0 \\ 0 \\ 0 \end{pmatrix}
+\hspace{2cm}
+\ket{01} = \begin{pmatrix} 0 \\ 1 \\ 0 \\ 0 \end{pmatrix}
+$$
+
+$$
+\ket{10} = \begin{pmatrix} 0 \\ 0 \\ 1 \\ 0 \end{pmatrix}
+\hspace{2cm}
+\ket{11} = \begin{pmatrix} 0 \\ 0 \\ 0 \\ 1 \end{pmatrix}
+$$
+
+Writing out a five‐qubit state as a 32×1 column would be cumbersome, so instead we build a 32‐dimensional space by "tensoring" five two‐dimensional spaces.
+
+This tensor notation can also be reduced by represented it inside of a ket. This notation is read right to left. Thus, the first qubit in this system is 1, and not a 0 as you might expect.
+
+$$
+\ket{0} \otimes \ket{1} \otimes \ket{0} \otimes \ket{1} \otimes \ket{1} = \ket{01011}
+$$
+
+The tensor product takes the possible states and expands it to show every possible permutation of the states, it combines separate quantum systems into one joint system, keeping track of all possible combinations of their states.
+
+For the rest of the paper, we will be focusing on two-qubit systems. This is how we can generally represent two qubits tensored together:
 
 $$
 (\alpha\ket{0} + \beta\ket{1}) \otimes (\gamma\ket{0} + \delta\ket{1}) = \alpha \gamma \ket{00} + \beta \gamma \ket{10} + \alpha \delta \ket{01} +\beta \delta \ket{11}
 $$
 
-By tensoring these qubits together, we have collected all possible outcomes of the qubits and their probabilities, where now $|\alpha \gamma|^2$ is the probability for measuring $\ket{00}$
+By tensoring these qubits together, we have collected all possible outcomes of the qubits and their probabilities, where now $|\alpha \gamma|^2$ is the probability for measuring $\ket{00}$ and so on.
 
-\subsection{Gates, Phase, and the Bloch Sphere}
+\subsection{Qubit Manipulation}
 
-\subsubsection{Gates}
+\subsubsection{Matrix Operations}
+Before we proceed with manipulating qubits, we must first define a matrix operation, the Hermitian conjugate, $U^\dagger$, pronounced "U dagger." To perform this operation, you must take the transpose of the matrix and then apply the complex conjugate, or vice versa. Basic examples will be shown in the next section.
+$$
+(U^{T})^{*} = (U^*)^T = U^\dagger
+$$ 
 
-In classical computing, there are logic gates, which operate on binary inputs. For example, the AND gate and the OR gate for two binary inputs. 
+For a unitary matrix, a matrix times its Hermitian conjugate, will equal the identity.
+$$
+U^{\dagger}U = I
+$$
+
+For a Hermitian matrix, a matrix is equal to its Hermitian conjugate. This also implies that Hermitian matrices are their own inverses.
+$$
+U = U^{\dagger}
+$$
+
+\subsubsection{Qubit Gates}
+
+In classical computing, there are logic gates, which operate on binary inputs. For example, the AND gate and the OR gate for two binary inputs. They are frequently used in computer engineering to manipulate classical information.
 
 \begin{figure}[h]
     \centering
     \includegraphics[scale=1]{AND_OR}
-    \caption{AND and OR Logic Gates}
+    \caption{AND and OR Logic Gates.}
     \cite{AND_OR_Logic_Gates}
     \label{fig:AND_OR}
 \end{figure}
 
 This leads into the idea of quantum logic gates, or simply qubit gates.\cite{Quantum_Information} 
 
-Before going into qubit gates, it is of note that it is also of note that each of these gates are Hermitian unitary operators.
-
-To define Hermitian matrices, we must first define the matrix operation, $U^\dagger$, pronounced "U dagger." To perform this operation, you must take the transpose of the matrix and then apply the complex conjugate, or vice versa.
-$$
-(U^{T})^{*} = (U^*)^T = U^\dagger
-$$ 
-
-For a unitary matrix:
-$$
-U^{\dagger}U = I
-$$
-
-For a Hermetian matrix:
-$$
-U = U^{\dagger}
-$$
-
-All quantum gates are unitary operators, however not all of the gates are Hermitian.
-
 Now to explain qubit gates, I will show various examples of how they change qubits. However, for the CHSH experiment, we will focus on the H, CNOT, and RY gates.
 
-We will start with the Pauli matrices, X, Y, Z (sometimes $\sigma_x, \sigma_x, \sigma_z$). Each of these gates apply to a single qubit.
+Recall that all quantum gates are unitary, but only those satisfying $U^2=I$ happen to be Hermitian.
+
+\subsubsection{The Pauli Matrices}
+
+We will start with the Pauli matrices, X, Y, Z (Also $\sigma_x, \sigma_y, \sigma_z$). Each of these gates apply to a single qubit. 
 
 The Pauli-X Gate:
 $$
@@ -287,8 +320,10 @@ Z \vert 1 \rangle =
 = -\vert 1 \rangle.
 $$
 
+The three Pauli matrices are the simplest of the quantum gates and they aid in understanding how a qubit can be transformed. We will later see how these qubits geometrically on the Bloch sphere.
 
-The three Pauli matrices are the simplest of the Quantum Gates and they aid in understanding how a qubit can be transforms. We will later see how these qubits geometrically on the Bloch sphere, but, before that we will finish introducing the gates that will be needed for the CHSH experiment.
+\subsubsection{Essential Quantum Gates}
+We will next introduce the rest of the gates that will be needed for the CHSH experiment. 
 
 \vspace{1cm}
 
@@ -300,7 +335,7 @@ H = \frac{1}{\sqrt{2}}
 1 & -1 
 \end{bmatrix}
 $$
-The Hadamard Gate is central to entanglement, because it creates an equal superposition state from a basis state
+The Hadamard Gate is central to entanglement, because it creates an equal superposition state from a $\ket{0}$ and $\ket{1}$ state.
 
 $$
 H \vert 0 \rangle = 
@@ -342,11 +377,52 @@ $$
 
 So far, we have only considered single qubit gates, but the CNOT is a two qubit gate. Consider the CNOT gate to be an X gate on a target qubit, but it only activates if the second, "control" qubit is a 1.
 
-An example will not be show using matrix multiplication. Visual examples will be shown in the later section, Quantum Circuits. 
+
+% Apply CNOT to |00>
+$$
+CNOT \cdot \ket{00} =
+CNOT \cdot
+\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}
+=
+\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix} = \ket{00}
+$$
+
+% Apply CNOT to |01>
+$$
+CNOT \cdot \ket{01} =
+CNOT \cdot
+\begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \end{bmatrix}
+=
+\begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \end{bmatrix} = \ket{01}
+$$
+
+% Apply CNOT to |10>
+$$
+CNOT \cdot \ket{10} =
+CNOT \cdot
+\begin{bmatrix} 0 \\ 0 \\ 1 \\ 0 \end{bmatrix}
+=
+\begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix} = \ket{11}
+$$
+
+% Apply CNOT to |11>
+$$
+CNOT \cdot \ket{11} =
+CNOT \cdot
+\begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix}
+=
+\begin{bmatrix} 0 \\ 0 \\ 1 \\ 0 \end{bmatrix} = \ket{10}
+$$
+
+If this seems confusing, the Visual examples of the CNOT gate will be shown in the later section, Quantum Circuits. 
 
 Looking forward to entanglement, what happens if the control qubit is in an equal superposition of $\ket{0}$ and $\ket{1}$? As we will soon see, the CNOT gate and the Hadamard gate are central to the entanglement between two qubits.
 
-The RY gate — Rotation operator gate about y-axis 
+The RY gate is a rotation operator gate about y-axis. This gate is mentioned in particular because it relates to the CHSH experiment. RX and RZ gates exist as well.
+
+As an interesting note, the RY gate is the only outlined in this list that is unitary but not Hermitian for arbitrary $\theta$. However, it is Hermition only if $\theta = 
+\pi$
+
 $$
 RY(\theta) =
 \begin{bmatrix}
@@ -405,11 +481,11 @@ $$
 RY(\pi) = -iY
 $$
 
-The Pauli-Y gate is defined with a conventional global phase to satisfy anti-commutativity along with the Pauli-X and Pauli-Z operators. This is not highly relavent, and the key takeaway should be that $RY(\pi)$ and $Y$ perform the same physical rotation, but differ by a global phase of -i.
+The Pauli-Y gate is defined with a conventional global phase to satisfy anti-commutativity along with the Pauli-X and Pauli-Z operators. This is not highly relevant, and the key takeaway should be that $RY(\pi)$ and $Y$ perform the same physical rotation, but differ by a global phase of -i.
 
 \subsubsection{Phase}
 
-First let us take a base qubit, $\ket{0}$, and then let us apply a Hadamard gate to split it into a superpositon:
+First let us take a base qubit, $\ket{0}$, and then let us apply a Hadamard gate to split it into a superposition:
 
 $$
 \ket{\psi} = H\ket{0} = \frac{1}{\sqrt{2}}( \ket{0}  + \ket{1})
@@ -438,7 +514,7 @@ This is the idea of relative phase. Recall that the Z gate rotates the qubit aro
 
 A general form:
 $$
-\ket{\psi} = \alpha \ket{0} + e^{i\phi} \beta \ket{1})
+\ket{\psi} = \alpha\ket0 + e^{i\phi}\beta\ket1
 $$
 
 But why is the $e^{i\phi}$ only on $\ket{1}$? Let's try putting it on both the 0 and 1 kets.
@@ -447,7 +523,7 @@ $$
 \ket{\psi} = e^{i\phi} \alpha \ket{0} + e^{i\phi} \beta \ket{1}) = e^{i\phi}(\alpha \ket{0} + \beta \ket{1})
 $$
 
-The global phase, $e^{i\phi}$, has no observable consequences and doesn't change the probabilities of getting a measurement result and is considered to be physically irrelevant, so it can be left off.\cite{Quantum_Information}
+The global phase, $e^{i\phi}$, has no observable consequences and doesn't change the probabilities of getting a measurement result and is considered to be physically irrelevant.\cite{Quantum_Information}
 
 $$e^{i\phi}(\alpha \ket{0} + \beta \ket{1}) = \alpha \ket{0} + \beta \ket{1}$$
 
@@ -480,7 +556,7 @@ Higher vertically means that the qubit is more likely to be $\ket{0}$ and vice v
 \begin{figure}[h]
     \centering
     \includegraphics[scale=0.75]{BlochSphere.png}
-    \caption{The Bloch Sphere}
+    \caption{The Bloch Sphere.}
     \cite{Bloch_Sphere}
     \label{fig:Bloch_Sphere}
 \end{figure}
@@ -512,25 +588,10 @@ $$
 \ket{-i} = \frac{1}{\sqrt{2}}( \ket{0}  + e^{i \frac{3\pi}{2}} \ket{1})
 $$
 
-\subsection{Quantum Circuits, Measurement, and Entanglement}
+\subsection{Quantum Circuits and Entanglement}
 
 \subsubsection{Quantum Circuits}
-So far, we have discussed gates, phase, and the Bloch sphere, but each of these discussions has only involved a single qubit. How can we apply a gate to a single qubit in a multi-qubit system, and how can we represent this system graphically? 
-
-Before we introduce quantum circuits, let us recall the AND and OR gates from the previous section, and lets create a classical circuit.
-
-The Classical Circuit in Figure 3 takes 3 inputs, A, B, and C and provides 1 output, Q, after passing A, B, and C through 2 AND gates and 1 OR gate. 
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[scale=0.5]{ClassicalCircuit.png}
-    \caption{Classical Circuit}
-    \cite{ClassicalCircuit}
-    \label{fig:ClassicalCircuit}
-\end{figure}
-
-
-This idea from classical computing leads into the idea of the quantum circuit — a graph with lines as "wires" which read left to read as different points in time with each qubit in a system having a separate wire.
+So far, we have discussed gates, phase, and the Bloch sphere, but each of these discussions has only involved a single qubit.\footnote{Except for the CNOT gate} How can we apply a gate to a single qubit in a multi-qubit system, and how can we represent this system graphically? 
 
 To draw the base diagram, first consider a 3 qubit system without any gates applied
 $$
@@ -540,6 +601,21 @@ $$
 \lstick{\ket{q_2}} & \qw & \qw & \qw & \qw
 }
 $$
+
+To understand why this diagram is chosen, let us recall the AND and OR gates from the previous section, and let's create a classical circuit.
+
+The Classical Circuit in Figure 3 takes 3 inputs, A, B, and C and provides 1 output, Q, after passing A, B, and C through 2 AND gates and 1 OR gate. 
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.3]{ClassicalCircuit.png}
+    \caption{Classical Circuit comprised of 2 AND gates and 1 OR gate.}
+    \cite{ClassicalCircuit}
+    \label{fig:ClassicalCircuit}
+\end{figure}
+
+
+This idea from classical computing leads into the idea of the quantum circuit. A graph with lines as "wires" which read left to read as different points in time with each qubit in a system having a separate wire.
 
 Now what if we want to apply an X gate to qubit 0, a Y gate to qubit 1, and a Z gate to qubit 2?
 
@@ -553,6 +629,8 @@ $$
 
 Quantum circuits are intuitive and very useful for visualizing a qubit system. Let's explore a few more examples.
 
+This system has an RY gate applied on qubit 0, and a CNOT gate controlled by qubit 0 and targeted to qubit 1. 
+
 $$
 \Qcircuit @C=1.8em @R=1.5em {
 \lstick{\ket{q_0}} & \gate{R_y(\theta)} & \ctrl{1} & \qw \\
@@ -560,17 +638,17 @@ $$
 }
 $$
 
-This system has an RY gate applied on qubit 0, and a CNOT gate controlled by qubit 0 and targeted to qubit 1. 
+This system has two of each Pauli gate applied to its respective qubit. Recall that the X, Y, and Z gates are unitary, so this circuit is equivalent to a circuit without any gates applied, like the one at the start of this section.
 
 $$
 \Qcircuit @C=2em @R=1.5em {
 \lstick{\ket{q_0}} & \gate{X} & \gate{X} & \qw & \qw \\
 \lstick{\ket{q_1}} & \gate{Y} & \gate{Y} & \qw & \qw \\
-\lstick{\ket{q_2}} & \gate{Z} & \gate{Y} & \qw & \qw
+\lstick{\ket{q_2}} & \gate{Z} & \gate{Z} & \qw & \qw
 }
 $$
 
-This system has two of each Pauli gate applied to it's respective qubit. Recall that the X, Y, and Z gates are both unitary, so this circuit is equivalent to a circuit without any gates applied.
+
 
 \subsubsection{Measurement}
 
@@ -583,9 +661,7 @@ $$
 }
 $$
 
-Recall that the Hadamard gate takes a basis qubit, and splits it into equal probabilities. Thus, if it is measured, the qubit will have a 50/50 chance to collapse into either state. 
-
-During this experiment, measurement will be handled by the backend. However, it is important to understand what is happening at a fundamental level.
+Recall that the Hadamard gate takes a $\ket{0}$ or a $\ket{1}$, and splits it into equal probabilities. Thus, if it is measured, the qubit will have a 50/50 chance to collapse into either state. 
 
 Consider the X-basis states, $\ket{+}$ and $\ket{-}$, and a qubit in the state $\ket{\psi} = \alpha\ket{0} + \beta{\ket{1}}$, such that $|\alpha|^2 + |\beta|^2 = 1$
 
@@ -608,7 +684,7 @@ $$
 
 Where the probability is
 $$
-p(+) = |\frac{\alpha - \beta}{\sqrt{2}}|^2 = \frac{|\alpha - \beta|^2}{2}
+p(-) = |\frac{\alpha - \beta}{\sqrt{2}}|^2 = \frac{|\alpha - \beta|^2}{2}
 $$
 
 So if $\alpha = 1, \beta=0$, an equal probability emerges.
@@ -619,16 +695,16 @@ $$
 
 \subsubsection{Bell States and Entanglement}
 
-As we saw from the Hadamard gate, it takes a basis state, and splits them into a superposition. So what if we take two qubits, apply a Hadamard gate, and then apply a CNOT gate?
+As we know from the Hadamard gate, we can take a basis state, and split it into a superposition. So what if we take two $\ket{0}$ qubits, apply a Hadamard gate, and then apply a CNOT gate?
 
 $$
 \Qcircuit @C=1.5em @R=1.5em {
-\lstick{\ket{q_0}} & \gate{H} & \ctrl{1} & \qw \\
-\lstick{\ket{q_1}} & \qw      & \targ    & \qw
+\lstick{\ket{0}} & \gate{H} & \ctrl{1} & \qw \\
+\lstick{\ket{0}} & \qw      & \targ    & \qw
 }
 $$
 
-This two qubit circuit is the classical example of entanglement and is referred to as a Bell state. More specifically, this is a "maximally entangled two-qubit Bell state."
+This two qubit circuit is a very important circuit, and we will be seeing it frequently. This is the classical example of entanglement and is referred to as a Bell state. More specifically, this is a "\textit{maximally} entangled two-qubit Bell state."
 
 This Bell state can be mathematically represented by 
 
@@ -648,9 +724,9 @@ $$
 \ket{\Psi^-} = \frac{1}{\sqrt{2}} ( \ket{01} - \ket{10} )
 $$
 
-But what does it mean for two qubits to be entangled?
+But what does it mean for two qubits to be entangled? What is interesting about Bell states?
 
-First, consider a two qubit system
+First, let's consider a two qubit system, $\ket{\psi_0}$ and $\ket{\psi_1}$
 
 $$
 \ket{\psi_0} = \alpha\ket{0} + \beta\ket{1}
@@ -672,7 +748,7 @@ $$
 \ket{\Phi^+} = \frac{1}{\sqrt{2}} ( \ket{00} + \ket{11} )
 $$
 
-Let's try to match the coefficients of the original two qubit system to the Bell state. I.E. we need to find coefficients such that
+Let's try to match the coefficients of the original two qubit system to the Bell state. i.e. we need to find coefficients such that
 
 $$
 \alpha\gamma = 0 \hspace{1cm} \alpha\delta=\frac{1}{\sqrt{2}} \hspace{1cm}
@@ -680,38 +756,56 @@ $$
 \beta\delta = 0
 $$
 
-It is impossible to match these coefficients from the sub system to the system of a Bell state. This implies non-separability of the qubits in the Bell state. This is the core idea of entanglement. 
+It is impossible to match these coefficients from the sub system to the system of a Bell state. This implies the state is not separable into a product state. This is the core idea of entanglement. 
 
 \newpage
 \section{CHSH Inequality}
 
-The CHSH inequality is a more robust version of Bell's inequality. Both are used to prove Bell's theorem, however Bell's inequality is requires a noiseless environment.
+The CHSH inequality is a more robust version of Bell's inequality. Both are used to prove Bell's theorem, however Bell's inequality requires a noiseless environment and is practically difficult to implement.
 
-The section will outline the theory behind the CHSH experiment, including derivations of the CHSH inequality, how the expectation values are calculated, and the true upper bound for the CHSH parameter, Tsirelson's bound.
+The section will outline the theory behind the CHSH experiment, including derivations of the CHSH inequality, how the expectation values are calculated, and the true upper bound for the CHSH parameter, known as Tsirelson's bound.
+
+
 
 \subsection{Bell's Theorem}
 
 Bell's theorem states that no local hidden variable theory can reproduce all of the predictions of quantum mechanics. \cite{Bell1964}
 
-A local hidden variable theory assumes that the universe operates with "hidden variables" which cannot be measured and there is no way for us to obtain information about them, with the additional principle of locality stating that objects must be influence only by its immediate surroundings.
+A local hidden variable theory assumes that the universe operates with "hidden variables" which cannot be measured and there is no way for us to obtain information about them, with the additional principle of locality stating that objects must be influenced only by their immediate surroundings.
 
-The principle of locality evolved from the theories of classical physics, and is central to special and general relativity. One of Einstein's primary postulates is one of locality — No information or causal influence can travel faster than the speed of light.
+The principle of locality evolved from the theories of classical physics, and is central to special and general relativity. One of Einstein's primary postulates is one of locality. No information or causal influence can travel faster than the speed of light.
 
-Einstein personally advocated for local realism, which states that there is no instantaneous action at a distance and that physical properties exist independently of observation. However, the CHSH experiment is evidence against this idea of local realism.
+Einstein personally advocated for local realism, which states that there is no instantaneous action at a distance and that physical properties exist independent of observation. However, the CHSH experiment is empirical evidence against this idea of local realism.
 
 The CHSH inequality provides a practical way to test Bell's theorem by bounding correlations between two spatially separated systems under the assumptions of a local hidden variable theory. \cite{CHSH1969}
 
+\subsection{The CHSH parameter, S}
+
+The CHSH parameter\footnote{Throughout this paper, \( S \) is referred to using the terms ``parameter'' and ``value'' interchangeably. However, ``parameter'' is the more accurate term.}, S, is given by
+$$
+S = E(A_0 B_0) - E(A_0 B_1) + E(A_1 B_0) + E(A_1 B_1)
+$$
+
+Where $E(A_i B_j)$ represents the expectation values of the product of the measurement outcomes for two qubits, of which we will name Alice and Bob.
+
+This expression arise by strategic choice rather than by any derivation. Bell's original inequality was ineffective against experimental noise, and the CHSH improved upon Bell's ideas and designed the CHSH parameter to maximize violation of the CHSH inequality and to simplify experimentation. \cite{CHSH1969} The idea of a maximum violation will be expanded upon in future sections. 
+
+
 \subsection{Expectation Values}
 
-We will soon see that the CHSH parameter is composed of expectation values and is written as
+The CHSH parameter, S, is composed of four expectation values
 
 $$
 S = E(A_0 B_0) - E(A_0 B_1) + E(A_1 B_0) + E(A_1 B_1)
 $$
 
-Where $A_i$ and $B_j$ are the measurement settings for two qubits, which we will name Alice and Bob respectively. So compute S, we must first calculate these individual expectation values.
+Where $A_i$ and $B_j$ represent the "measurement settings" for two qubits, which we will name Alice and Bob respectively. To compute S, we must first calculate these individual expectation values.
 
-However, we must note the correlation between $A_0$ and $B_0$ to the Z-basis and $A_1$ and $B_1$ to the Z-basis
+These measurement settings correlate to what basis the qubits are being measured in. Specifically, the qubits will either be measured with respect to the X or Z basis.
+
+To be very explicit, $A_0$ is the expectation value of Alice's qubit being observed in the Z-basis, $A_1$ is the expectation value of Alice's qubit being observed in the X-basis, $B_0$ is the expectation value of Bob's qubit being observed in the Z-basis, and $B_1$ is the expectation value of Bob's qubit being observed in the X-basis.
+
+To ground the next calculations, let us recall that expectation values quantify how measurement outcomes on entangled qubits correlate when projected onto different bases. In particular, computing the eigenvalues and eigenvectors of the Pauli operators, $Z$ and $X$ reveals the possible outcomes as $\pm 1$ and their associated states. By explicitly finding these determinants, we confirm each measurement, setting the stage for constructing the CHSH parameter. 
 
 $$
 Z = \begin{bmatrix}
@@ -769,10 +863,10 @@ $$
 \boldsymbol{v} = \begin{bmatrix}
 0 \\
 1
-\end{bmatrix} = \ket{0}
+\end{bmatrix} = \ket{1}
 $$
 
-
+Having determined that the eigenvalues of Z are $\pm1$ with eigenstates $\ket{0}$ and $\ket{1}$, we now turn our attention to the Pauli-X operator. We will find that we get the same eigenvalues $\pm1$, however now with eigenvectors $\ket{+}$ and $\ket{-}$ respectively.
 
 $$
 X = \begin{bmatrix}
@@ -833,63 +927,57 @@ $$
 \end{bmatrix} = \ket{-}
 $$
 
-To optimize the violation of the CHSH inequality, we want to misaligne Alice and Bob's measurement bases by $45^\circ$ on the Bloch sphere. The Z and X bases are orthogonal, but optimal angles are adjusted with the RY gate to maximize correlations.
+With the eigenvalue and vectors for $Z$ and $X$ deteremined, we can now formalize the expectation value for a two-qubit measurement. 
 
-The expectation value $E(A_iB_j)$ is computed by
+An individual expectation value $E(A_iB_j)$ is computed by
 
 $$
 E(A_i B_j) = \bra{\psi} A_i \otimes B_j \ket{\psi}
 $$
 
-Where $\ket{\psi}$ is the shared entagngled state, $\ket{\Phi^+}$
+Where $\ket{\psi}$ is the shared entangled Bell state, $\ket{\Phi^+} = \frac{1}{\sqrt{2}}(\ket{00} + \ket{11})$
 
-However, in practice the expectation values are derived from repeated trials where Alice and Bob record their outcomes, $a_k,b_k$ for the measurement settings $A_i,B_j$.
+\subsection{The Classical Bound, $S \leq 2$}
+
+To continue with the derivation of the classical bound, we must now assume realism and locality. This means that before Alice and Bob pick how they will measure their qubits, the outcomes are already predetermined by some underlying hidden variable, $\lambda$.
+
+We can then write the expectation values from repeated trials where Alice and Bob record their outcomes, $a_k,b_k$ for the measurement settings $A_i,B_j$. \footnote{In practice, one replaces the ensemble average by a finite sum over $N$ trials, incurring only negligible statistical error for large $N$.}
+
+\[
+E(A_i B_j) = \frac{1}{N} \sum_{k=1}^{N} a_k(\lambda) b_k(\lambda)
+\]
+
+Where $a_k, b_k \in \{\pm1\}$ are the outcomes of a single observation, summed for the total number of trials.
+
+If both of the outcomes are $\pm1$, then the outcomes agree, and are positively correlated. However, if one correlation is $+1$ and the other is $-1$, then  the outcomes disagree, and are negatively correlated. Thus we can write the expectation values as such
 
 
-$$
-E(A_i B_j) = \frac{1}{N} \Sigma_{k=1}^{N} a_k b_k
-$$
-
-Such that $a_k, b_k \in \{\pm1\}$ are the outcomes for the total number of trials. 
-
-If both of the outcomes are $\pm1$, then the outcomes agree, and are positively correlated. However, if one correlation ii $+1$ and the other is $-1$, then  the outcomes disagree, and are negatively correlated. Thus we can write the expectation values as such
-
-$$
+\[
 E(A_i, B_j) = \frac{N_{++} - N_{+-} - N_{-+} + N_{--}}{N_{total}}
-$$
-
-\subsection{The CHSH parameter, S}
+\]
 
 
-The CHSH parameter\footnote{Throughout this paper, \( S \) is referred to using the terms ``parameter'' and ``value'' interchangeably. However, ``parameter'' is the more accurate term.}, S, is given by
-$$
-S = E(A_0 B_0) - E(A_0 B_1) + E(A_1 B_0) + E(A_1 B_1)
-$$
-
-Where $E(A_i B_j)$ represents the expectation values of the product of the measurement outcomes for two qubits, of which we will name Alice and Bob.
-
-% I don't have a way to cite this
-This expression arise by strategic choice. It is designed to maximize violation of the CHSH inequality and to simplify experimentation from Bell's original inequality, which was ineffective against experimental noise. \cite{CHSH1969}
-
-To proceed with the derivation of the inequality, assume that outcomes are predetermined by a hidden variable, $\lambda$. Locality ensures that outcomes only depend on local settings, and realism assumes that outcomes exist independently outside of measurement.
+To proceed with the derivation of the classical inequality, we want to make the assumption that outcomes are predetermined by some hidden variable, which we will call $\lambda$. Locality ensures that outcomes only depend on local settings, and realism assumes that outcomes exist independent of measurement.
 
 For a fixed value of $\lambda$, with binary outcomes,
 
 $$
-A_0(\lambda), A_1(\lambda), B_0(\lambda), B_1(\lambda) \in \{\pm1\}
+a_0(\lambda), a_1(\lambda), b_0(\lambda), b_1(\lambda) \in \{\pm1\}
 $$
 
 Then the CHSH value becomes
 
 $$
-S(\lambda) = A_0(\lambda)B_0(\lambda) - A_0(\lambda)B_1(\lambda) + A_1(\lambda)B_0(\lambda) + A_1(\lambda)B_1(\lambda)
+S(\lambda) = a_0(\lambda)b_0(\lambda) - a_0(\lambda)b_1(\lambda) + a_1(\lambda)b_0(\lambda) + a_1(\lambda)b_1(\lambda)
 $$
 
+Since we know the possible values of the correlations and the value for S, we can then determine the bound of S with the assumptions of realism and locality. But first, let's rewrite S to be a bit easier to work with.
+
 $$
-S(\lambda)= A_0(\lambda) [B_0(\lambda) - B_1(\lambda)] + A_1(\lambda) [B_0(\lambda) + B_1(\lambda)]
+S(\lambda)= a_0(\lambda) [b_0(\lambda) - b_1(\lambda)] + a_1(\lambda) [b_0(\lambda) + b_1(\lambda)]
 $$
 
-Recall that each value can only take on the values of $\pm1$, so it is quite easy to tabulate all of the possible combinations of values and evaluate from there.
+Recall that each value can only take on the values of $\pm1$, so now we can tabulate all of the possible combinations of values and evaluate from there.
 
 \begin{center}
 \begin{tabular}{
@@ -902,30 +990,31 @@ Recall that each value can only take on the values of $\pm1$, so it is quite eas
  \hline
  \multicolumn{5}{|c|}{All possible permutations} \\
  \hline
- \(B_0\) & \(B_1\) & \(B_0 - B_1\) & \(B_0 + B_1\) & \(S(\lambda)\) \\
+ \(b_0\) & \(b_1\) & \(b_0 - b_1\) & \(b_0 + b_1\) & \(S(\lambda)\) \\
  \hline
- \(+1\)   &  \(+1\)    & \(0\) &  \(+2\) & \(+2A_1\) \\
- \(+1\)   &  \(-1\)    & \(+2\)&  \(0\) & \(+2A_0\) \\
- \(-1\)   &  \(+1\)    & \(-2\)&  \(0\) & \(-2A_0\) \\
- \(-1\)   &  \(-1\)    & \(0\) &  \(-2\) & \(-2A_1\) \\
+ \(+1\)   &  \(+1\)    & \(0\) &  \(+2\) & \(+2a_1\) \\
+ \(+1\)   &  \(-1\)    & \(+2\)&  \(0\) & \(+2a_0\) \\
+ \(-1\)   &  \(+1\)    & \(-2\)&  \(0\) & \(-2a_0\) \\
+ \(-1\)   &  \(-1\)    & \(0\) &  \(-2\) & \(-2a_1\) \\
  \hline
 \end{tabular}
 \end{center}
 
-Thus, in all cases and for all hidden variables,$\lambda$, $|S(\lambda)| \leq 2$ holds. Due to the absolute value, the bound $S \leq -2$ is also valid, but $S \geq 2$ is more commonly used
+In all cases and for any single hidden variable, $\lambda$, we can deduce the classical bound $|S(\lambda)| \leq 2$. 
 
-This inequality is experimentally testable and can be violated with a Bell state, but how can we maximize this violation to avoid experimental noise? Looking ahead and knowing that the value $|S| \geq 2$ will be violated, then what is the maximum possible violation?
+This inequality is experimentally testable and as we will soon see, it can be violated with a Bell state, but how can we maximize this violation to avoid experimental noise?
 
-\newpage
+To optimize the violation of the CHSH inequality, it has been found that we want Alice and Bob's measurement bases to be misaligned by $45^\circ$ on the Bloch sphere. The Z and X bases are orthogonal, so to get these optimal angles we use the RY gate to rotate by $45^\circ$. The RY gate will be applied to both qubits after they have been entangled.
+
+Looking ahead and knowing that the value $|S(\lambda)| \leq 2$ will be violated, then what is the maximum possible violation?
+
 \subsection{Tsirelson’s bound}
 
-If we find that the CHSH value is greater than 2, we have proven the contrapositive of the assumptions used in deriving the CHSH inequality. This will be done in the next section, but what is the maximum possible violation within the realm of quantum mechanics?
+Looking ahead and knowing that the classical bound will be violated, what is the maximum possible violation within the realm of quantum mechanics?
 
-This maximum value is known as the Tsirelson bound, named after the mathematician Boris S. Tsirelson. In his 1980 paper, Tsirelson derived the the upper bound for the CHSH and highlighted the differences in Bell's 1964 framework of local hidden variable theories. \cite{Tsirelson_Paper} \cite{Bell1964}
+This maximum value is known as the Tsirelson bound, named after the mathematician Boris S. Tsirelson. In his 1980 paper, Tsirelson derived the upper bound for the CHSH parameter and highlighted the differences in Bell's 1964 framework of local hidden variable theories. \cite{Tsirelson_Paper} \cite{Bell1964}
 
-Using a slightly different notation than before, we will use the operator norm of the CHSH operator, T. This is not the same as S, but it is directly related by the expectation value.
-
-
+We will now use a slightly different notation than before, where expectation values are now placed inside angle brackets. Additionally, we will use the operator norm of the CHSH operator, T for our derivation. This is not the same as S, but it is directly related by the expectation value. 
 
 $$
 S =
@@ -936,26 +1025,38 @@ $$
 S = \left\langle \psi \middle| T \middle| \psi \right\rangle
 $$
 
-
 $$
 T = A_0 \otimes B_0 - A_0 \otimes B_1 + A_1 \otimes B_0 + A_1 \otimes B_1
 $$
 
-As an intermediate step
+For any normalized value, $\ket{\psi}$, we can used the operator norm to find the inequality
+
+\[
+|\left\langle \psi \big| T \big| \psi \right\rangle| \leq ||T|| = \sqrt{||T^2||}
+\]
+
+Therefore, 
+\[
+|S| \leq  \sqrt{||T^2||}
+\]
+
+Before we continue with tensor algebra manipulation of T, it is vitally important to note that operations are not commutative. i.e. $A_0 A_1 \neq A_1 A_0$
 
 $$
 T = A_0 \otimes(B_0 - B_1) + A_1 \otimes(B_0 + B_1)
 $$
 
+Now as an intermediate step, let's square both sides.
+
 $$
-T^2 = (A_0 \otimes(B_0 - B_1) + A_1 \otimes(B_0 + B_1))^2
+T^2 = [A_0 \otimes(B_0 - B_1) + A_1 \otimes(B_0 + B_1)]^2
 $$
 
 $$
 T^2 = (A_0 \otimes(B_0 - B_1))^2 + (A_1 \otimes(B_0 + B_1))^2 + A_0A_1 \otimes ((B_0 - B_1)(B_0 + B_1)) + A_1 A_0 \otimes ((B_0 + B_1) ( B_0 - B_1))
 $$
 
-First consider the square terms and 
+Let's break this into parts and first consider the square terms and 
 recall that $A_i^2 = B_j^2 = I$
 
 $$
@@ -1001,7 +1102,7 @@ A_0 A_1 \otimes [B_0, B_1] + A_1 A_0 \otimes (-[B_0, B_1]) = A_0 A_1 \otimes [B_
 $$
 
 $$
-= [A_0 A_1 - A_1 A_0] \otimes [B_0, B_1] = [A_0, A_1] \otimes [B_0, B_1]
+= (A_0 A_1 - A_1 A_0) \otimes [B_0, B_1] = [A_0, A_1] \otimes [B_0, B_1]
 $$
 
 Combining all of the terms,
@@ -1010,11 +1111,20 @@ $$
 T^2 = 4I + [A_0, A_1] \otimes [B_0, B_1]
 $$
 
-Notice that if the commutators are zero, then we see the classical bound, $T = 2I$
+Notice that if the commutators are zero, 
 
-To evaluate these commutators requires the Simultaneous diagonalization theorem \cite{Quantum_Information}, which leads into the commutation relations for the Pauli matrices as stated by Nielsen and Chuang. This results will not be fully shown here.  
+\[
+T^2 = 4I \implies ||T|| = 2
+\]
 
-Recall that the values $A_0, B_0$ correlate to Z, and the values $A_1, B_1$ correlate the X. Then we can find the commutation relations for Z and X.
+Thus the maximum eigenvalue is 2, and we naturally see the classical bound, 
+\[
+|S| = |\bra{\Phi^+}T\ket{\Phi^+}| \leq 2
+\]
+
+To continue with the derivation, we must evaluate these commutators with the commutation relations for the Pauli matrices as stated by Nielsen and Chuang\cite{Quantum_Information}.  
+
+Recall that the values $A_0, B_0$ correlate to Z, and the values $A_1, B_1$ correlate the X. We can then derive the commutation relations for Z and X.
 
 $$  
 ZX = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix} \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ -1 & 0 \end{bmatrix}.  
@@ -1037,66 +1147,214 @@ $$
 [Z,X] = 2iY
 $$
 
-$$
-[A_0, A_1] = [Z,X] = 2iY \hspace{2cm} [B_0, B_1] = [Z,X] = 2iY
-$$
+We now distinguish YAYA​ and YBYB​ as acting on Alice’s and Bob’s qubit, respectively.
+
+\[
+T^2 = 4I + [A_0, A_1] \otimes [B_0, B_1] 
+\]
 
 $$
-T^2 = 4I + [A_0, A_1] \otimes [B_0, B_1] = 4I + 2iY \otimes 2iY = 4I - 4(Y \otimes Y)
+[A_0, A_1] = [Z,X] = 2iY_A \hspace{2cm} [B_0, B_1] = [Z,X] = 2iY_B
 $$
 
-Since $Y^2 = I$, the eigenvalues are $\pm1$, thus it follows that
+\[
+T^2 = 4I + 2iY_A \otimes 2iY_B = 4I - 4(Y_A \otimes Y_B)
+\]
 
-$$
-T^2 = 4I \pm4I
-$$
+While $Y_A$ and $Y_B$ appear mathematically indistinguishable, we must deal with them separately. Let's do this by evaluating the tensor product with respect to the bell state.
 
-ignoring $T^2 = 0$,
+\[
+\langle \Phi^+ | Y_A \otimes Y_B | \Phi^+ \rangle
+\]
 
-$$
-||T^2|| \leq 8 \implies ||T|| \leq 2\sqrt{2}
-$$
 
-$$
-|S| \leq 2\sqrt{2}
-$$
+\[
+= \frac{1}{(\sqrt{2})^2}( \bra{00} + \bra{11} | Y_A \otimes Y_B | \ket{00} + \ket{11} )
+\]
+
+It is vitally important that we keep track of which qubit we're working with.
+
+\[
+= \frac{1}{2} ( \bra{0_A} \bra{0_B} + \bra{1_A} \bra{1_B} | Y_A \otimes Y_B | \ket{0_A} \ket{0_B} + \ket{1_A} \ket{1_B} )
+\]
+
+After expanding it out, this becomes the rather messy form
+
+\begin{align*}
+= \frac{1}{2}[
+  (\bra{0_A} \bra{0_B} Y_A \otimes Y_B \ket{0_A} \ket{0_B})  \\
++ (\bra{0_A} \bra{0_B} Y_A \otimes Y_B \ket{1_A} \ket{1_B}) \\
++ (\bra{1_A} \bra{1_B} Y_A \otimes Y_B \ket{0_A} \ket{0_B}) \\
++ (\bra{1_A} \bra{1_B} Y_A \otimes Y_B \ket{1_A} \ket{1_B})
+]
+\end{align*}
+
+With some matrix multiplication, we find that $\bra{0}Y\ket{0} = \bra{1}Y\ket{1}=0$, which greatly simplifies our equation to just the cross terms
+
+\[
+= \frac{1}{2}[
+\bra{0_A} Y_A \ket{1_A}\bra{0_B} Y_B \ket{1_B} 
++ \bra{1_A} Y_A \ket{0_A} \bra{1_B} Y_B  \ket{0_B}]
+\]
+
+Now all that remains is finish the matrix multiplication.
+
+\[
+\bra{0}Y\ket{1} = \begin{pmatrix} 1 & 0 \end{pmatrix}
+\;
+\begin{pmatrix}
+  0 & -i \\[6pt]
+  i & 0
+\end{pmatrix}
+\;
+\begin{pmatrix} 0 \\[3pt] 1 \end{pmatrix}
+\;= -i
+\]
+
+Similarly we find,
+
+\[
+\bra{1}Y\ket{0} = \begin{pmatrix} 0 & 1 \end{pmatrix}
+\;
+\begin{pmatrix}
+  0 & -i \\[6pt]
+  i & 0
+\end{pmatrix}
+\;
+\begin{pmatrix} 1 \\[3pt] 0 \end{pmatrix}
+\;= i
+\]
+
+Which then brings our original form to the rather simple equation,
+
+\[
+\frac{1}{2}((-i)^2 + (i)^2) = -1
+\]
+
+Recall that we had to use the bell state to get this value, which simultaneously transformed our $T^2$ value
+
+\[
+\langle T^2 \rangle = 4 - 4 \langle Y_A \otimes Y_B \rangle = 8
+\]
+
+We then get the result
+
+\[
+|S| \leq ||T|| = 2 \sqrt{2}
+\]
 
 With quantum mechanics, we find the maximum value for the CHSH value is $2\sqrt{2}$. This is the theoretical limit, even with higher-dimensional entanglement, no quantum state or measurement strategy will exceed this. Physically it demonstrates that quantum correlations are stronger than classical, however still bounded by $2\sqrt{2}$
-
-% \subsection{Expectation values}
-% The expectation value, $E(A_i, B_j) = <A_i B_j>$ is analytically defined by
-
-% $$
-% E(A_i, B_j) = (N_{++} - N_{+-} - N_{-+} + N_{--})/(N_{total})
-% $$
-
-% Physically it represents the average correlation between measurement outcomes for 2 entangled particles when measurements are performed
-% Individually, $A_i and B_j$, refer to specific measurement settings, e.g. angles on the Bloch sphere. For a pair of entangled particles, the measurements are correlated and their measurements either agree or disagree
 
 \newpage
 \section{CHSH Experiment}
 Qiskit, or the Quantum Information Software Kit, is an open source software development kit (SDK) created by IBM researchers to execute programs on quantum computers.
 Qiskit has various tools for creating and manipulating quantum information. 
 
-Qiskit allows usage of their prototype quantum devices on the IBM Quantum Platform or by using locally run simulators. In this section there are 3 different programs. Two using the Aer simulator, and one that is compatible with IBM quantum hardware. 
+Qiskit allows usage of their prototype quantum devices on the IBM Quantum Platform or by using locally run simulators. In this section there are 3 different programs. Two of which were written using the Aer simulator, and one which is compatible with IBM quantum hardware.
 
-\subsection{Aer Simulator}
-To recreate the CHSH experiment, I first used the Aer simulator module with Qiskit.\cite{qiskit}. Two simulator backends were used, the Qasm Simulator which simulators a noisy quantum circuit, and the Statevector Simulator, which is an ideal quantum circuit simulator.
+Only snippets of the full code will be shown. Only code that directly relates to the CHSH experiment will be mentioned and little to no code relating to the Qiskit backend will be shown. The complete code can be found on \url{https://github.com/acroscopic/CHSH/} and it is recommended to reference while reading this paper.
 
-We will skip over some of the Qiskit and Aer simulator setup. Thus, the code in this paper is pseudo-code that directly relates to the CHSH experiment. The complete code can be found on \url{https://github.com/acroscopic/CHSH/}
+\subsection{Aer Simulator and IBM Hardware}
+We will begin by using the Aer simulator module for Qiskit to recreate the CHSH experiment, and then we will use real IBM Quantum Hardware.\cite{qiskit}. Three total backends were used. Two Aer simulator backends and a backend to connect with an IBM Quantum Computer. The two Aer simulators used are the Qasm Simulator which simulates a noisy quantum circuit, and the Statevector Simulator, which is an ideal or noiseless quantum circuit.
+
+\subsection{Statevector Simulator}
+
+Let's begin by using the Aer Statevector simulator. This is a noiseless backend, which means that it will produce the same value each time the program is run.
+
+We begin by defining angles. We will later reference these angles when we use the RY gate.
+
+\begin{lstlisting}[style=python]
+# These are the angles at which we're measuring our qubits
+angles = {
+    # Pure X-basis measurement
+    'A0': np.pi / 2,
+
+    # Pure Z-basis measurement
+    'A1': 0,
+
+    # X-basis (Rotated 45 degrees)
+    'B0': np.pi / 4,
+
+    # Z-basis (Rotated 45 degrees)
+    'B1': -np.pi / 4
+}
+\end{lstlisting}
+
+\newpage
+
+ Next, let's define the measurement settings we'll be using,
+
+\begin{lstlisting}[style=python]
+# Recall S = E(A0B0) - E(A0B1) + E(A1B0) + E(A1B1)
+# This is just setting up the settings so we can loop over them
+# We will subtract the E(A0B1) later
+measurement_settings = [
+    ('A0', 'B0'), # Add
+    ('A0', 'B1'), # Subtract (later)
+    ('A1', 'B0'), # Add
+    ('A1', 'B1'), # Add
+]
+\end{lstlisting}
+
+We need loop through the measurement settings, create a Bell state, and apply the measurement rotations. 
+
+\begin{lstlisting}[style=python]
+    # Start looping through the measurement settings
+    # We need to use both qubits, which we've named Alice and Bob
+    for alice, bob in measurement_settings:
+
+        # Create a quantum circuit with 2 qubits
+        qc = QuantumCircuit(2)
+        
+        # First, we need to create Bell state between Alice and Bob
+        # Put a Hadamard gate on Alice (Qubit 0)
+        qc.h(0)    
+        # Then, put a CNOT gate on Alice and Bob (Controlled by Alice)  
+        qc.cx(0, 1)
+        
+        # Apply RY gate rotations to the qubits to align the measurement basis
+        qc.ry(-angles[alice], 0)  # Alice's basis
+        qc.ry(-angles[bob], 1)    # Bob's basis
+\end{lstlisting}
+
+Now that we have prepared the system, We will make a measurement and find the expectation values. This is done by simulating the statevectors for each measurement setting, and then squaring the probability amplitude. All that remains is compute the CHSH value.
+
+\begin{lstlisting}[style=python]
+if alice == 'A0' and bob == 'B1':
+    S -= E # Subtract only E(A0B1)
+else:
+    S += E # Add everything else
+print(f"E({alice}{bob}) = {E}")
+
+print(f"S   = {S}")
+print(f"2√2 = {2*np.sqrt(2)}")
+\end{lstlisting}
+
+\subsubsection{Results}
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.8]{StateVector.png}
+    \caption{Terminal output from running Aer\_StateVector.py}
+    \label{fig:StateVector_results}
+\end{figure}
+
+The Aer statevector simulator has provided a noiseless environment to run the CHSH experiment. We can see that the value obtain is identical to $2\sqrt{2}$ and will always produce this result when run. However running the CHSH experiment on real hardware does not have the luxury of a noiseless environment. To see what we might expect, let's continue with the Aer simulator, but with a new noisy backend.
 
 \subsection{Qasm Simulator}
 
-The first step was to create a bell state between two qubits, Alice, q[0] and Bob, q[1]. 2 classical bits are also created for storing the results of measurement. 
+The Qasm Simulator works similarly to the Statevector Simulator. We will begin again by creating a bell state between two qubits, Alice, q[0] and Bob, q[1]. 2 classical bits are also created for storing the results of measurement. 
 
 \begin{lstlisting}[style=python]
 q = QuantumRegister(2,'q')
 c = ClassicalRegister(2,'c')
 
 def bell():
-    qc = QuantumCircuit(q, c)  
-    qc.h(q[0])
-    qc.cx(q[0], q[1])
+    # Create a quantum circuit
+    qc = QuantumCircuit(q, c) 
+    alice = q[0]         # The first qubit
+    bob = q[1]           # The second qubit
+    qc.h(alice)          # Hadamard Gate
+    qc.cx(alice, bob)    # CNOT Gate
     
     return qc    
 \end{lstlisting}
@@ -1105,13 +1363,13 @@ Recall the graphical visualization of this bell state. The only difference betwe
 
 $$
 \Qcircuit @C=1.5em @R=1.5em {
-\lstick{\ket{q_0}} & \gate{H} & \ctrl{1} & \qw \\
-\lstick{\ket{q_1}} & \qw      & \targ    & \qw
+\lstick{\ket{Alice}} & \gate{H} & \ctrl{1} & \qw \\
+\lstick{\ket{Bob}} & \qw      & \targ    & \qw
 }
 $$
 
 \newpage
-The next step is to measure the qubits and store them in the classical bits. However, before measurement, the RY gate is applied to the measured qubit. The angle at which the RY gate is applied will be discussed shortly.
+The next step is to measure the qubits and store them in the classical bits. However, before measurement, the RY gate is applied.
 
 \begin{lstlisting}[style=python]
 def measure(qc, angle, qubit, cbit):
@@ -1122,8 +1380,8 @@ def measure(qc, angle, qubit, cbit):
 
 $$
 \Qcircuit @C=1.5em @R=1.5em {
-\lstick{\ket{q_0}} & \gate{H} & \ctrl{1} &  \gate{RY(\theta)} & \qw & \meter & \qw\\
-\lstick{\ket{q_1}} & \qw      & \targ    &  \gate{RY(\theta)} & \qw & \meter & \qw
+\lstick{\ket{Alice}} & \gate{H} & \ctrl{1} &  \gate{RY(\theta)} & \qw & \meter & \qw\\
+\lstick{\ket{Bob}} & \qw      & \targ    &  \gate{RY(\theta)} & \qw & \meter & \qw
 }
 $$
 
@@ -1155,7 +1413,7 @@ def CHSH():
     backend = Aer.get_backend('qasm_simulator')
     # Uses the noisy simulator backend
     
-    S = 0 # initilizes the CHSH value
+    S = 0 # initializes the CHSH value
 
     # These angles provide the maximum violation of the CHSH inequality, known as Tsirelson's bound
     angles = {
@@ -1205,137 +1463,47 @@ def CHSH():
     \label{fig:Qasm_results}
 \end{figure}
 
-After running the code, with a total of 10 million iterations per expectation value, we get a final CHSH value of 2.8277, which is just under the maximum bound of $2\sqrt{2} \approx 2.828...$
+After running the code, with a total of 10 million iterations per expectation value, we get a final CHSH value of 2.8277, which is just under the maximum bound of $2\sqrt{2} \approx 2.82842...$
 
-However, since the Qasm simulator is a noisy quantum circuit simulator, values above Tsirelson's bound can be achieved. This would be a major alarm, but this is an issue inherent in the Qasm simulator, and with finite sampling in general. If you use a higher shot count, the values get closer to the bound $2\sqrt{2}$.
-
+Since the Qasm simulator is a noisy quantum circuit simulator, if you do not have a high enough shot count, values above Tsirelson's bound can be achieved. This would normally be a major alarm, but this is an issue inherent in the Qasm simulator, and with finite sampling in general. If you use a higher shot count, the values get closer to the bound, $2\sqrt{2}$, and are more likely to stay under the bound. 
 
 \begin{figure}[h]
     \centering
     \includegraphics[scale=0.8]{QASM_Break.png}
-    \caption{Noise-induced violation of Tsirelson's bound}
+    \caption{Noise-induced violation of Tsirelson's bound.}
     \label{fig:Qasm_violation_results}
 \end{figure}
 
-
-
-\subsection{Statevector Simulator}
-
-Previously, we used the Qasm Simulator within Aer, however due to finite sampling, we got values that were above the maximum violation of the CHSH inequality, Tsirelson's bound. 
-
-Let's now recreate the results from the Qasm Simulator, but with the StateVector simulator, which is a noiseless backend. 
-
-The code is largely the same, however it removes the need for finite sampling due to the shots count needed for calculating the expectation values. 
-
-The begins by initializing the backend, CHSH values, angles, and the measurement settings. Functionally, this is the same as Aer\_Qasm.py.
-
-\begin{lstlisting}[style=python]
-backend = Aer.get_backend('statevector_simulator')
-
-S = 0
-
-angles = {
-    'A0': np.pi / 2,   # X-basis measurement
-    'A1': 0,           # Z-basis measurement
-    'B0': np.pi / 4,   # rotated Z-basis measurement
-    'B1': -np.pi / 4   # rotated Z-basis measurement
-}
-measurement_settings = [
-    ('A0', 'B0'), 
-    ('A0', 'B1'),
-    ('A1', 'B0'), 
-    ('A1', 'B1'),
-]
-\end{lstlisting}
-
-Next, we loop through the measurement settings, create a Bell state, and apply the measurement rotations. 
-
-\begin{lstlisting}[style=python]
-for alice, bob in measurement_settings:
-    # Initialize circuit with 2 qubits (no classical registers)
-    qc = QuantumCircuit(2)
-    
-    # Create Bell state between Alice and Bob
-    qc.h(0)
-    qc.cx(0, 1)
-    
-    # Apply measurement rotations
-    qc.ry(-angles[alice], 0)  # Alice's basis
-    qc.ry(-angles[bob], 1)    # Bob's basis
-\end{lstlisting}
-
-Now that we have prepared the system, it's time to make a measurement and find the expectation values. This is done by simulating the statevectors for each measurement settign, and the squaring the probability amplitude.
-
-\begin{lstlisting}[style=python]
-# Simulate to get the statevector
-transpiled_qc = transpile(qc, backend)
-result = backend.run(transpiled_qc).result()
-statevector = result.get_statevector()
-# Calculate probabilities by squaring the probability amplitude
-probs = np.abs(statevector)**2
-# Extract probabilities for each outcome
-# "little-endian" ordering: |q1 q0>
-prob_00 = probs[0]  # |00>
-prob_01 = probs[1]  # |01>
-prob_10 = probs[2]  # |10>
-prob_11 = probs[3]  # |11>
-# Compute expectation value
-# recall negative and positive correlations
-E = (prob_00 + prob_11) - (prob_01 + prob_10)
-\end{lstlisting}
-
-
-All that remains is compute the CHSH value and compare the results to the Qasm simulator.
-
-\begin{lstlisting}[style=python]
-def CHSH():
-        if alice == 'A0' and bob == 'B1':
-            S -= E
-        else:
-            S += E
-        print(f"E({alice}{bob}) = {E:.4f}")
-    return S
-S_exact = CHSH()
-print(f"\nCHSH value S = {S\_exact:.8f}... = 2sqrt(2) ({2*np.sqrt(2):.8f}...)")
-\end{lstlisting}
-
-\subsubsection{Results}
 \begin{figure}[h]
     \centering
-    \includegraphics[scale=0.8]{statevectorresults.png}
-    \caption{Terminal output from running Aer\_StateVector.py}
-    \label{fig:StateVector_results}
+    \includegraphics[scale=0.55]{range(2^20,2^30).png}
+    \caption{Tabulated S parameter values alongside the shots used, highlighting an issue inherent in finite sampling. We see that as higher amounts of calculations as done, we start to converge to $2\sqrt{2}$, however it will not remain strictly below or above the line.}
+    \label{fig:Calculated_S_Values_Against_Shot_Range_2^20_2^30}
 \end{figure}
 
-The Aer statevector simulator has provided a noiseless environment to run the CHSH experiment. We can see that the value obtain is identical to $2\sqrt{2}$. However running the CHSH experiment on real hardware does not have the luxury of a noiseless environment. To run on IBM hardware, the code must be modified so that the violation can still be clearly observed even with experimental noise. To do this, we will iterate through equally spaced angles to be used in the RY gate. The more iterations would prove more of a statistical significance, provide a high maximum violation.
-
-
-
-\newpage
 \subsection{Execution on IBM Quantum Hardware}
-Previously, the section of code was ran using the Aer simulator and did not interface with any quantum hardware. It is highly relevant to empirically replicate the results of the CHSH experiment using a real quantum computer \cite{ibm_quantum}. The setup is different, but the theory behind it is not. 
+Previously, all code has been run using the Aer simulator and did not interface with any real quantum hardware. It is highly relevant to empirically replicate the results of the CHSH experiment using a real quantum computer \cite{ibm_quantum}. The setup is different, but the theory behind it is not. 
 
-Since there is a lot of setup for IBM hardware, more Qiskit specific aspects of the code will be shown. However, this is still pseudo-code, and the full version can be found on \url{https://github.com/acroscopic/CHSH/}
+Since there is a lot of setup for IBM hardware, more Qiskit specific aspects of the code will be shown. For this section in particular, it is recommended to view the full code while reading: \url{https://github.com/acroscopic/CHSH/blob/main/CHSH_Experiment.py}. However, only code snippets will be included in this paper for brevity.
 
-First, we need to set up the type of backend we want to use. We will filter for hardware with 127 qubits, which is the modern "Eagle" processor-based systems via IBM Quantum \cite{ibm_quantum}.
+First, we need to set up the type of backend we want to use. We will filter for hardware with 127 qubits, which is the modern "Eagle" processor-based systems via IBM Quantum\cite{ibm_quantum}.
 \begin{lstlisting}[style=python]
 backend = service.least_busy(simulator=False, operational=True, min_num_qubits=127)
 \end{lstlisting}
 
-For this version of the code instead of running millions of calculations to find the expectation values, the angle for the RY gate will be parametrized between equally spaced values over a full 0 to $2\pi$ rotation. It can do it this way because of the difference in calculating the expectation values. 
+Instead of running lots of calculations to find the expectation values as before, hardware requires a more analytic approach. In addition, the angle for the RY gate will be parametrized between equally spaced values over a full 0 to $2\pi$ rotation. This will allow us to see values that do and don't violate the inequality, and how we can optimize it.
 
 \begin{lstlisting}[style=python]
+# Parametrize different angles for the RY gate
 theta = Parameter("$\\theta$")
-
-qc = QuantumCircuit(2)
-
-qc.h(0)
-qc.cx(0, 1)
-
-qc.ry(theta, 0)
-
 number_of_phases = 20
 phases = np.linspace(0, 2 * np.pi, number_of_phases)
+
+# Creating the quantum circuit in the same manner as before
+qc = QuantumCircuit(2)
+qc.h(0)
+qc.cx(0, 1)
+qc.ry(theta, 0)
 \end{lstlisting}
 
 One of the biggest difference between the previous Aer simulator code and this version, is that expectation values are written in terms of the observables as Pauli matrices, the X and Z gates. Where X and Z are tensored together. This is just an alternative method to calculate the same expectation values as before.
@@ -1350,35 +1518,25 @@ observable = SparsePauliOp.from_list([
 ])    
 \end{lstlisting}
 
-Since we are running this code on hardware, we need to modify our data to fit the specific hardware
+Since we are running this code on hardware, we need to modify our data to fit the specific hardware that is available before we submit the job to queue and wait to receive the results. After doing that, we can run the job.
 
 \begin{lstlisting}[style=python]
-target = backend.target
-pm = generate_preset_pass_manager(target=target, optimization_level=3)
-qc_isa = pm.run(qc)
-isa_observable = observable.apply_layout(layout=qc_isa.layout)
-estimator = Estimator(mode=backend)
-pub = (
-    qc_isa,  # remapped ISA circuit
-    [[isa_observable]], # remapped observables
-    individual_phases  # Parameter values to test
-)
-\end{lstlisting}
-
-And then finally, we submit the job to queue and wait to receive the results.
-
-\begin{lstlisting}[style=python]
+# Running the CHSH Experiment after aligning with the specifics of the backend.
 job = estimator.run(pubs=[pub])
 result = job.result()
 
-S_values = result[0].data.evs[0] # Expectation values for the observable
+# Expectation values for the observable
+S_values = result[0].data.evs[0] 
 print(S_values)
 
 violation = np.any(np.abs(S_values) > 2)
 print(f"CHSH violation detected: {violation}")
 
-print(f"Job ID: {job.job_id()}") # Unique identifier for job
-print(f"Job status: {job.status()}") # Should be 'DONE' if successful
+# Unique identifier for job
+print(f"Job ID: {job.job_id()}") 
+
+# Should be 'DONE' if successful
+print(f"Job status: {job.status()}") 
 \end{lstlisting}
 
 \subsubsection{Results}
@@ -1395,21 +1553,35 @@ After running the code on IBM's quantum computer in Ukraine, Kyiv, we get multip
 
 \newpage
 \section{Conclusion}
-After executing the CHSH experiment on both a noiseless and a noisy Aer Simulators and on IBM hardware, we observed the CHSH parameter, \( S > 2 \), violating the classical bound of \( |S| \leq 2 \). This empirical violation of the CHSH inequality provides strong evidence against local hidden variable theories, which assume that outcomes are determined by hidden properties independet of distant measurements. 
+After executing the CHSH experiment on both a noiseless and a noisy Aer Simulators and on IBM hardware, we observed the CHSH parameter, \( S > 2 \), violating the classical bound of \( |S| \leq 2 \). This empirical violation of the CHSH inequality provides strong evidence against local hidden variable theories, which assume that outcomes are determined by hidden properties independent of distant measurements. 
 
 By violating this inequality, we have empirically validated Bell's theorem, demonstrating that non-local realism theories can fully describe quantum correlations. More specifically, the results reject local realism, which is the joint assumptions of locality and realism. Quantum mechanics inherently incorporates non-local correlations through entangled states, as seen by the Bell state used in this experiment.
 
 This violation implies that quantum mechanics exhibits non-locality. While this does not imply instantaneous communication due to the no-signaling theorem, it confirms that quantum systems cannot be described by the local deterministic methods from classical physics without violating this empirical evidence.
 
-The noisy simulator and hardware results highlight the fragility of quantum correlations in practical settings. Despite this, the measured violations consistently surpass S = 2, further reinforcing the necessity of quantum mechanics being an accurate representation of nature.
+The noisy simulator and hardware results highlight the fragility of quantum correlations in practical settings. Despite this, the measured violations consistently surpass S = 2.
 
 These findings underscore the necessity of embracing quantum theory and its inherently non-classical framework to be able to describe the fundamental aspects of nature. The results align with the Copenhagen interpretation, and the violation challenges many classically held intuitions about causality and locality. 
 
 In summary, this experiment shows that quantum mechanics is not solely a statistical tool, but a fundamental framework to describe reality. 
 
 \newpage
-\subsection{Bibliography}
-\begin{thebibliography}{9}
+
+\section{Acknowledgements}
+
+This paper was written as an honors project for the undergraduate Quantum Mechanics course, PHY 3035, at the Florida Institute of Technology. 
+
+I owe my deepest gratitude to Dr. Souvik Das, whose support made this work possible and for doing an outstanding job structuring my introduction to the world of quantum. He generously stayed late to guide my work, furthered my knowledge, meticulously proofread, and found more typos and grammar slip-ups than I care to admit. Dr. Das also provided me with invaluable presentation opportunities: twice with his Quantum Computing Research Group and once at a lecture attended by students from mathematics, physics, and space science, and my fellow peers in PHY 3035.
+
+My thanks go to Krupa Pothiwala and Grant Lindell for their enthusiastic collaboration. From the earliest brainstorming sessions in the problem sets for PHY 3035, their constructive feedback in proofreading, and their dedication that pushed this project to a higher standard.
+
+I am also grateful to Scott Demarest for his clear explanation of the fundamental limitations on separability of entangled particles, and for kindly allowing me to use his derivation demonstrating that entangled particles cannot be decomposed into a product state of two subsystems.
+
+Finally, I would like to extend my thanks to Florida Tech for fostering an environment where undergraduate research can flourish, and I am thankful to all of the faculty, staff, and fellow students who contributed their time and expertise, directly or indirectly, to my education.
+
+\newpage
+\section{Bibliography}
+\begin{thebibliography}{1} % Number of sources
 
     \bibitem{Quantum_Information} Nielsen, M. A., \& Chuang, I. L. \textit{Quantum Computation and Quantum Information}. Cambridge University Press, 2010.
 
@@ -1417,7 +1589,7 @@ In summary, this experiment shows that quantum mechanics is not solely a statist
 
     \bibitem{CHSH1969} Clauser, J. F., Horne, M. A., Shimony, A., \& Holt, R. A. "Proposed Experiment to Test Local Hidden-Variable Theories." \textit{Physical Review Letters}, vol. 23, no. 15, pp. 880–884, 1969. \url{https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.23.880}
 
-    \bibitem{AND_OR_Logic_Gates} Toheeb Olaide/Class Notes, "logic-gates-symbol-csc-classnotesng.jpg," classnotes.ng, Date, \url{https://classnotes.ng/lesson/logic-gate}
+    \bibitem{AND_OR_Logic_Gates} Toheeb Olaide/Class Notes, "logic-gates-symbol-csc-classnotesng.jpg," classnotes.ng, \url{https://classnotes.ng/lesson/logic-gate}
 
     \bibitem{Bloch_Sphere} Wyrd Smythe/Logos Con Carne, "bloch-hdr.png," logosconcarne.com, March 15, 2021, \url{https://logosconcarne.com/2021/03/15/qm-101-bloch-sphere/}
 
