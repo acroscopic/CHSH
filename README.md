@@ -13,7 +13,7 @@ This code was written for my undergraduate PHY 3035 Quantum Mechanics course as 
 ├── Aer_Qasm.py            # Noisy simulation of the CHSH Experiment
 ├── Aer_StateVector.py     # Noiseless simulation of the CHSH Experiment
 ├── CHSH_Experiment.py     # The CHSH Experiment for IBM Quantum Hardware
-├── CHSH.tex               # LaTeX Document to generate CHSH.pdf  
+├── Tex_files.zip          # LaTeX files to generate CHSH_Paper.pdf  
 ├── CHSH_Paper.pdf         # Exposition of all required information. **READ ME**
 ├── GSPlotter.py           # Plotting software that I wrote for MatPlotLib
 ├── Data.py                # Used for succesively running simulations for plot generation
